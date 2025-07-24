@@ -1,0 +1,62 @@
+<!-- templates/dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - GreenPulse</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom sliding dot fix */
+    .toggle-track {
+      transition: background-color 0.3s ease;
+    }
+    .toggle-dot {
+      transition: transform 0.3s ease;
+    }
+    input:checked + .toggle-track .toggle-dot {
+      transform: translateX(1.25rem); /* Moves dot to the right */
+    }
+  </style>
+</head>
+<body class="bg-green-50 min-h-screen p-6">
+  <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6">
+    <h1 class="text-3xl font-bold text-green-700 mb-6">Welcome, {{ username }}!</h1>
+
+    <h2 class="text-xl font-semibold mb-4 text-gray-800">Your Appliances:</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {% for appliance, state in appliances.items() %}
+        <div class="flex items-center justify-between p-4 border rounded-lg bg-green-50">
+          <span class="text-lg font-medium">{{ appliance }}</span>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox"
+                   class="sr-only peer"
+                   {% if state == 'on' %}checked{% endif %}
+                   onchange="toggleAppliance('{{ appliance }}', this.checked)">
+            <div class="toggle-track w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-green-500">
+              <div class="toggle-dot absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full"></div>
+            </div>
+          </label>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="mt-6 text-right">
+      <a href="/logout" class="text-red-600 hover:underline">Logout</a>
+    </div>
+  </div>
+
+  <script>
+    function toggleAppliance(appliance, isChecked) {
+      fetch('/update_toggle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ appliance: appliance, state: isChecked ? 'on' : 'off' })
+      }).then(res => {
+        if (!res.ok) alert("Failed to update state!");
+      });
+    }
+  </script>
+</body>
+</html>
