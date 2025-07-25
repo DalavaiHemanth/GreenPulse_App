@@ -10,15 +10,26 @@
     <div class="bg-white p-8 rounded-xl shadow-md w-full max-w-3xl">
         <h2 class="text-3xl font-bold mb-6 text-center text-green-700">Select Your Appliances</h2>
         
-        <!-- ✅ Fixed form action -->
+        <!-- Make sure the route /appliance_selection has POST method allowed in app.py -->
         <form method="POST" action="/appliance_selection">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                {% for appliance in appliances %}
-                <div class="flex items-center justify-between bg-gray-100 p-3 rounded-lg">
-                    <label class="text-gray-800 font-medium">{{ appliance }}</label>
-                    <input type="number" name="{{ appliance }}" min="0" max="10" value="0" class="w-20 px-2 py-1 rounded border border-gray-300 focus:outline-none focus:ring focus:ring-green-300">
-                </div>
-                {% endfor %}
+                {% if appliances %}
+                    {% for appliance in appliances %}
+                    <div class="flex items-center justify-between bg-gray-100 p-3 rounded-lg">
+                        <label class="text-gray-800 font-medium" for="{{ appliance }}">{{ appliance }}</label>
+                        <input 
+                            type="number" 
+                            name="{{ appliance }}" 
+                            id="{{ appliance }}" 
+                            min="0" 
+                            max="10" 
+                            value="0" 
+                            class="w-20 px-2 py-1 rounded border border-gray-300 focus:outline-none focus:ring focus:ring-green-300">
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-red-500">No appliances found.</p>
+                {% endif %}
             </div>
             <div class="text-center">
                 <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">Confirm Selection</button>

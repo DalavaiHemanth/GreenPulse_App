@@ -1,61 +1,145 @@
-<!-- templates/dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Dashboard - GreenPulse</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Custom sliding dot fix */
-    .toggle-track {
+    .toggle-input {
+      display: none;
+    }
+    .toggle-label {
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      background-color: #d1d5db;
+      border-radius: 9999px;
+      position: relative;
       transition: background-color 0.3s ease;
     }
-    .toggle-dot {
+    .toggle-label::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background-color: #ffffff;
+      border-radius: 9999px;
       transition: transform 0.3s ease;
     }
-    input:checked + .toggle-track .toggle-dot {
-      transform: translateX(1.25rem); /* Moves dot to the right */
+    .toggle-input:checked + .toggle-label {
+      background-color: #22c55e;
+    }
+    .toggle-input:checked + .toggle-label::after {
+      transform: translateX(20px);
     }
   </style>
 </head>
-<body class="bg-green-50 min-h-screen p-6">
-  <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-6">
-    <h1 class="text-3xl font-bold text-green-700 mb-6">Welcome, {{ username }}!</h1>
+<body class="bg-green-50 min-h-screen p-4 sm:p-6 text-gray-900">
+  <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-xl p-6 space-y-6">
 
-    <h2 class="text-xl font-semibold mb-4 text-gray-800">Your Appliances:</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {% for appliance, state in appliances.items() %}
-        <div class="flex items-center justify-between p-4 border rounded-lg bg-green-50">
-          <span class="text-lg font-medium">{{ appliance }}</span>
-          <label class="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox"
-                   class="sr-only peer"
-                   {% if state == 'on' %}checked{% endif %}
-                   onchange="toggleAppliance('{{ appliance }}', this.checked)">
-            <div class="toggle-track w-11 h-6 bg-gray-300 rounded-full peer-checked:bg-green-500">
-              <div class="toggle-dot absolute top-0.5 left-0.5 bg-white w-5 h-5 rounded-full"></div>
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-center">
+      <h1 class="text-2xl sm:text-3xl font-bold text-green-700 mb-2 sm:mb-0">
+        Welcome, {{ username }}!
+      </h1>
+      <div class="flex items-center space-x-4">
+        <!-- Dark Mode Toggle -->
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <span class="text-sm text-gray-700">🌙</span>
+          <input type="checkbox" id="darkModeToggle" class="sr-only" onchange="toggleDarkMode()">
+          <div class="w-10 h-5 bg-gray-300 rounded-full p-1 flex items-center">
+            <div id="darkToggleCircle" class="bg-white w-4 h-4 rounded-full transition-transform duration-300"></div>
+          </div>
+        </label>
+        <a href="/logout" class="text-red-600 font-semibold hover:underline">Logout</a>
+      </div>
+    </div>
+
+    <!-- Appliances Section -->
+    <h2 class="text-xl font-semibold text-gray-800">Your Appliances:</h2>
+    {% if appliance_counts %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {% for appliance, count in appliance_counts.items() %}
+          <div class="flex items-center justify-between p-4 bg-green-100 rounded-lg shadow-sm">
+            <div>
+              <span class="text-lg font-medium text-gray-800">{{ appliance }}</span>
+              <span class="text-sm text-gray-600">× {{ count }}</span>
             </div>
-          </label>
-        </div>
-      {% endfor %}
+            <div>
+              <input type="checkbox"
+                     id="toggle-{{ loop.index }}"
+                     class="toggle-input"
+                     {% if appliance_states.get(appliance, 'off') == 'on' %}checked{% endif %}
+                     onchange="toggleAppliance('{{ appliance }}', this.checked)">
+              <label for="toggle-{{ loop.index }}" class="toggle-label"></label>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-gray-600">No appliances found. Please add appliances in your profile.</p>
+    {% endif %}
+
+    <!-- ML Prediction & Tip -->
+    <div class="p-4 bg-yellow-100 border-l-4 border-yellow-500 rounded-md mt-6">
+      <h2 class="text-lg font-semibold text-yellow-800">⚠ Overuse Alert</h2>
+      <p class="text-yellow-700 mt-1">
+        {% if overuse_prediction %}{{ overuse_prediction }}{% else %}No overuse detected.{% endif %}
+      </p>
     </div>
 
-    <div class="mt-6 text-right">
-      <a href="/logout" class="text-red-600 hover:underline">Logout</a>
+    <div class="p-4 bg-blue-100 border-l-4 border-blue-500 rounded-md">
+      <h2 class="text-lg font-semibold text-blue-800">💡 Energy Saving Tip</h2>
+      <p class="text-blue-700 mt-1">
+        {% if energy_tip %}{{ energy_tip }}{% else %}Keep up the good work!{% endif %}
+      </p>
     </div>
+
+    <!-- Optional: Weather Alert -->
+    {% if weather_alert %}
+    <div class="p-4 bg-red-100 border-l-4 border-red-500 rounded-md">
+      <h2 class="text-lg font-semibold text-red-800">🌧 Weather Alert</h2>
+      <p class="text-red-700 mt-1">{{ weather_alert }}</p>
+    </div>
+    {% endif %}
+
   </div>
 
+  <!-- JS -->
   <script>
     function toggleAppliance(appliance, isChecked) {
       fetch('/update_toggle', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ appliance: appliance, state: isChecked ? 'on' : 'off' })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appliance: appliance,
+          state: isChecked ? 'on' : 'off',
+          username: encodeURIComponent("{{ username }}")
+        })
       }).then(res => {
-        if (!res.ok) alert("Failed to update state!");
+        if (!res.ok) {
+          alert("Failed to update appliance state!");
+        }
       });
+    }
+
+    function toggleDarkMode() {
+      const html = document.documentElement;
+      const circle = document.getElementById("darkToggleCircle");
+      const isDark = html.classList.toggle("dark");
+
+      if (isDark) {
+        document.body.classList.add("bg-gray-900", "text-white");
+        document.body.classList.remove("bg-green-50", "text-gray-900");
+        circle.style.transform = "translateX(20px)";
+      } else {
+        document.body.classList.remove("bg-gray-900", "text-white");
+        document.body.classList.add("bg-green-50", "text-gray-900");
+        circle.style.transform = "translateX(0)";
+      }
     }
   </script>
 </body>
